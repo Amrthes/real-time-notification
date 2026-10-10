@@ -1,0 +1,85 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Notifications</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Notifications</h1>
+
+        <div id="notifications"></div>
+
+        <div class="button-container">
+            <button id="showHistory" class="history-button">
+                View History
+            </button>
+            <button id="clearHistory" class="clear-button">
+                Clear History
+            </button>
+        </div>
+
+        <div id="history"></div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on("notification", (message) => {
+            const area = document.getElementById("notifications");
+            const notification = document.createElement("div");
+            notification.className = "notification";
+            notification.textContent = message;
+            area.prepend(notification);
+
+            setTimeout(() => {
+                notification.classList.add("fade-out");
+                setTimeout(() => notification.remove(), 1000);
+            }, 5000);
+        });
+
+        document.getElementById("showHistory").onclick = async () => {
+            const area = document.getElementById("history");
+            area.replaceChildren();
+
+            try {
+                const response = await fetch("/notifications");
+                const history = await response.json();
+
+                if (history.length === 0) {
+                    area.textContent = "No notification history available.";
+                    return;
+                }
+
+                history.forEach(message => {
+                    const item = document.createElement("div");
+                    item.className = "notification history-notification";
+                    item.textContent = message;
+                    area.appendChild(item);
+                });
+            } catch {
+                area.textContent = "Unable to load history.";
+            }
+        };
+
+        document.getElementById("clearHistory").onclick = async () => {
+            try {
+                const response = await fetch("/notifications", {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    document.getElementById("history").textContent =
+                        "Notification history cleared.";
+                }
+            } catch {
+                alert("Unable to clear history.");
+            }
+        };
+    </script>
+</body>
+</html>
